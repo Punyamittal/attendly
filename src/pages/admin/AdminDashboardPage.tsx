@@ -107,10 +107,10 @@ export function AdminDashboardPage() {
           <h2 className="font-display text-2xl font-bold">Dashboard</h2>
           <p className="text-sm text-[var(--muted)]">Live overview of campus attendance</p>
         </div>
-        <Link to="/admin/scanner">
+        <Link to="/admin/events">
           <Button>
             <ScanLine className="h-4 w-4" />
-            Open QR Scanner
+            Event Scanner
           </Button>
         </Link>
       </div>

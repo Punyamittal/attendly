@@ -310,6 +310,36 @@ export async function fetchEventAttendance(eventId: string): Promise<EventAttend
   return (data as EventAttendance[]) ?? []
 }
 
+export async function fetchAllEventAttendance(params?: {
+  search?: string
+  eventId?: string
+}): Promise<Array<EventAttendance & { event_title?: string; event_date?: string }>> {
+  let query = supabase
+    .from('event_attendance')
+    .select('*, events(title, event_date)')
+    .order('marked_at', { ascending: false })
+
+  if (params?.eventId) query = query.eq('event_id', params.eventId)
+  if (params?.search) {
+    const s = params.search.trim()
+    query = query.or(
+      `registration_number.ilike.%${s}%,student_name.ilike.%${s}%`
+    )
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+
+  return ((data as Array<EventAttendance & { events?: { title: string; event_date: string } | null }>) ?? []).map(
+    (row) => ({
+      ...row,
+      event_title: row.events?.title,
+      event_date: row.events?.event_date,
+      events: undefined,
+    })
+  )
+}
+
 export async function deleteEventAttendance(id: string): Promise<void> {
   const { error } = await supabase.from('event_attendance').delete().eq('id', id)
   if (error) throw error

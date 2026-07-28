@@ -48,32 +48,20 @@ export function StudentLoginPage() {
           </div>
           <h1 className="font-display text-2xl">Student Login</h1>
           <p className="mt-1 font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
-            Use your campus credentials
+            ID = Registration No · Password = Name
           </p>
-
-          <div className="mt-4 border-[3px] border-ink-950 bg-brand-400 p-3 text-ink-950 dark:border-brand-400">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-widest">How to sign in</p>
-            <ul className="mt-2 space-y-1 font-mono text-[10px] leading-relaxed">
-              <li>
-                <strong>ID</strong> = your Registration Number (e.g. 23BAI1559)
-              </li>
-              <li>
-                <strong>Password</strong> = your full Name exactly as in records
-              </li>
-            </ul>
-          </div>
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <Input
               label="ID (Registration Number)"
-              placeholder="e.g. 23BAI1559"
+              placeholder="e.g. XXABC0000"
               autoComplete="username"
               {...register('registrationNumber')}
               error={errors.registrationNumber?.message}
             />
             <Input
               label="Password (Full Name)"
-              placeholder="e.g. EVELYN MARIA PAULRAJ"
+              placeholder="e.g. Jane Q. Public"
               autoComplete="current-password"
               {...register('name')}
               error={errors.name?.message}

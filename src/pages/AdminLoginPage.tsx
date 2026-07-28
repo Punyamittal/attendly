@@ -33,7 +33,7 @@ export function AdminLoginPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed'
       if (/invalid login credentials/i.test(msg)) {
-        toast.error('Invalid credentials — create the admin user in Supabase Auth first')
+        toast.error('Invalid email or password')
       } else {
         toast.error(msg)
       }
@@ -53,13 +53,13 @@ export function AdminLoginPage() {
           </div>
           <h1 className="font-display text-2xl">Admin Login</h1>
           <p className="mt-1 font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
-            Supabase admin credentials
+            Admin access only
           </p>
           <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <Input
               label="Email"
               type="email"
-              placeholder="admin@college.edu"
+              placeholder="admin@example.com"
               autoComplete="username"
               {...register('email')}
               error={errors.email?.message}
@@ -76,14 +76,6 @@ export function AdminLoginPage() {
               Sign In
             </Button>
           </form>
-          <div className="mt-6 border-[3px] border-ink-950 bg-brand-400 p-3 text-left text-ink-950 dark:border-brand-400">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-widest">Setup required</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-4 font-mono text-[10px] leading-relaxed">
-              <li>Auth → Users → Add user (auto-confirm on)</li>
-              <li>Copy UUID → run supabase/setup_admin.sql</li>
-              <li>Sign in with that email + password</li>
-            </ol>
-          </div>
           <p className="mt-6 text-center text-sm text-[var(--muted)]">
             Student?{' '}
             <Link to="/student/login" className="font-medium text-brand-600 dark:text-brand-400">

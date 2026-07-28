@@ -4,14 +4,12 @@ import {
   LayoutDashboard,
   Users,
   ClipboardList,
-  ScanLine,
   BarChart3,
   FileText,
   Settings,
   LogOut,
   Menu,
   X,
-  QrCode,
   CalendarDays,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
@@ -24,7 +22,6 @@ const links = [
   { to: '/admin/students', label: 'Students', icon: Users },
   { to: '/admin/attendance', label: 'Attendance', icon: ClipboardList },
   { to: '/admin/events', label: 'Events', icon: CalendarDays },
-  { to: '/admin/scanner', label: 'QR Scanner', icon: ScanLine },
   { to: '/admin/reports', label: 'Reports', icon: FileText },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
@@ -111,9 +108,9 @@ export function AdminLayout() {
           </h1>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <Link to="/admin/scanner" className="btn-primary !px-2 !text-[10px] sm:!px-4 sm:!text-sm">
-              <QrCode className="h-4 w-4" strokeWidth={2.5} />
-              <span className="hidden sm:inline">Scanner</span>
+            <Link to="/admin/events" className="btn-primary !px-2 !text-[10px] sm:!px-4 sm:!text-sm">
+              <CalendarDays className="h-4 w-4" strokeWidth={2.5} />
+              <span className="hidden sm:inline">Events</span>
             </Link>
           </div>
         </header>
