@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   QrCode,
+  CalendarDays,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -22,6 +23,7 @@ const links = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/students', label: 'Students', icon: Users },
   { to: '/admin/attendance', label: 'Attendance', icon: ClipboardList },
+  { to: '/admin/events', label: 'Events', icon: CalendarDays },
   { to: '/admin/scanner', label: 'QR Scanner', icon: ScanLine },
   { to: '/admin/reports', label: 'Reports', icon: FileText },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },

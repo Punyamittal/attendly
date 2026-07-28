@@ -22,6 +22,32 @@ export interface Attendance {
   created_at: string
 }
 
+export interface EventRecord {
+  id: string
+  title: string
+  description: string
+  event_date: string
+  start_time: string | null
+  end_time: string | null
+  location: string
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+}
+
+export interface EventAttendance {
+  id: string
+  event_id: string
+  student_id: string | null
+  registration_number: string
+  student_name: string
+  programme: string
+  department: string
+  status: 'Present' | 'Absent' | 'Late'
+  marked_at: string
+  created_at: string
+}
+
 export interface Admin {
   id: string
   email: string

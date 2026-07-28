@@ -35,7 +35,25 @@ export const contactSchema = z.object({
   message: z.string().min(10, 'Message must be at least 10 characters'),
 })
 
+export const eventFormSchema = z.object({
+  title: z.string().min(2, 'Title is required').max(120),
+  description: z.string().max(500).optional().or(z.literal('')),
+  event_date: z.string().min(1, 'Date is required'),
+  start_time: z.string().optional().or(z.literal('')),
+  end_time: z.string().optional().or(z.literal('')),
+  location: z.string().max(120).optional().or(z.literal('')),
+  is_active: z.boolean().optional(),
+})
+
+export const manualAttendanceSchema = z.object({
+  registration_number: z.string().min(3, 'Registration number required'),
+  attendance_date: z.string().min(1, 'Date required'),
+  status: z.enum(['Present', 'Absent', 'Late']),
+})
+
 export type StudentLoginInput = z.infer<typeof studentLoginSchema>
 export type AdminLoginInput = z.infer<typeof adminLoginSchema>
 export type StudentFormInput = z.infer<typeof studentFormSchema>
 export type ContactInput = z.infer<typeof contactSchema>
+export type EventFormInput = z.infer<typeof eventFormSchema>
+export type ManualAttendanceInput = z.infer<typeof manualAttendanceSchema>

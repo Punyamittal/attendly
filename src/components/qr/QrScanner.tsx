@@ -3,7 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode'
 import { Camera, FlipHorizontal2, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { markAttendanceFromQr } from '@/services/attendance'
+import { markAttendanceFromQr, markEventAttendanceFromQr } from '@/services/attendance'
 import { playSuccessBeep } from '@/utils/helpers'
 import { Button } from '@/components/ui/Button'
 import type { MarkAttendanceResult, QrPayload } from '@/types'
@@ -13,23 +13,32 @@ const REGION_ID = 'attendly-qr-reader'
 interface OfflineItem {
   token: string
   scannedAt: string
+  eventId?: string
 }
 
-const OFFLINE_KEY = 'attendly-offline-queue'
+interface Props {
+  /** When set, scans mark attendance for this event instead of daily attendance */
+  eventId?: string
+  regionId?: string
+}
 
-function loadQueue(): OfflineItem[] {
+function offlineKey(eventId?: string) {
+  return eventId ? `attendly-offline-queue-event-${eventId}` : 'attendly-offline-queue'
+}
+
+function loadQueue(eventId?: string): OfflineItem[] {
   try {
-    return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]') as OfflineItem[]
+    return JSON.parse(localStorage.getItem(offlineKey(eventId)) || '[]') as OfflineItem[]
   } catch {
     return []
   }
 }
 
-function saveQueue(items: OfflineItem[]) {
-  localStorage.setItem(OFFLINE_KEY, JSON.stringify(items))
+function saveQueue(items: OfflineItem[], eventId?: string) {
+  localStorage.setItem(offlineKey(eventId), JSON.stringify(items))
 }
 
-export function QrScanner() {
+export function QrScanner({ eventId, regionId = REGION_ID }: Props) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const processingRef = useRef(false)
   const lastTokenRef = useRef<string>('')
@@ -38,7 +47,12 @@ export function QrScanner() {
   const [ready, setReady] = useState(false)
   const [lastResult, setLastResult] = useState<MarkAttendanceResult | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [queueCount, setQueueCount] = useState(loadQueue().length)
+  const [queueCount, setQueueCount] = useState(loadQueue(eventId).length)
+
+  async function mark(token: string) {
+    if (eventId) return markEventAttendanceFromQr(token, eventId)
+    return markAttendanceFromQr(token)
+  }
 
   async function processToken(token: string) {
     if (processingRef.current) return
@@ -48,17 +62,17 @@ export function QrScanner() {
 
     try {
       if (!navigator.onLine) {
-        const q = loadQueue()
+        const q = loadQueue(eventId)
         if (!q.some((i) => i.token === token)) {
-          q.push({ token, scannedAt: new Date().toISOString() })
-          saveQueue(q)
+          q.push({ token, scannedAt: new Date().toISOString(), eventId })
+          saveQueue(q, eventId)
           setQueueCount(q.length)
           toast('Offline — scan queued for sync', { icon: '📡' })
         }
         return
       }
 
-      const result = await markAttendanceFromQr(token)
+      const result = await mark(token)
       setLastResult(result)
 
       if (result.success) {
@@ -82,17 +96,17 @@ export function QrScanner() {
   }
 
   async function syncQueue() {
-    const q = loadQueue()
+    const q = loadQueue(eventId)
     if (!q.length || !navigator.onLine) return
     const remaining: OfflineItem[] = []
     for (const item of q) {
       try {
-        await markAttendanceFromQr(item.token)
+        await mark(item.token)
       } catch {
         remaining.push(item)
       }
     }
-    saveQueue(remaining)
+    saveQueue(remaining, eventId)
     setQueueCount(remaining.length)
     if (q.length !== remaining.length) {
       toast.success(`Synced ${q.length - remaining.length} offline scan(s)`)
@@ -119,7 +133,7 @@ export function QrScanner() {
         if (cancelled) return
         setCameras(devices.map((d) => ({ id: d.id, label: d.label })))
 
-        const scanner = new Html5Qrcode(REGION_ID)
+        const scanner = new Html5Qrcode(regionId)
         scannerRef.current = scanner
 
         const camId = devices[cameraIndex % devices.length]?.id
@@ -160,7 +174,7 @@ export function QrScanner() {
         void scanner.stop().then(() => scanner.clear()).catch(() => undefined)
       }
     }
-  }, [cameraIndex])
+  }, [cameraIndex, regionId])
 
   function switchCamera() {
     if (cameras.length < 2) {
@@ -190,7 +204,7 @@ export function QrScanner() {
         </div>
 
         <div
-          id={REGION_ID}
+          id={regionId}
           className="min-h-[260px] overflow-hidden border-[3px] border-ink-950 bg-ink-900 dark:border-ink-50 sm:min-h-[320px] [&_video]:!h-auto [&_video]:!w-full [&_video]:object-cover"
         />
 

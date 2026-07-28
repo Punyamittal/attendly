@@ -13,6 +13,8 @@ import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { StudentsPage } from '@/pages/admin/StudentsPage'
 import { AttendancePage } from '@/pages/admin/AttendancePage'
 import { ScannerPage } from '@/pages/admin/ScannerPage'
+import { EventsPage } from '@/pages/admin/EventsPage'
+import { EventDetailPage } from '@/pages/admin/EventDetailPage'
 import { ReportsPage } from '@/pages/admin/ReportsPage'
 import { AnalyticsPage } from '@/pages/admin/AnalyticsPage'
 import { SettingsPage } from '@/pages/admin/SettingsPage'
@@ -48,6 +50,8 @@ export default function App() {
                 <Route index element={<AdminDashboardPage />} />
                 <Route path="students" element={<StudentsPage />} />
                 <Route path="attendance" element={<AttendancePage />} />
+                <Route path="events" element={<EventsPage />} />
+                <Route path="events/:eventId" element={<EventDetailPage />} />
                 <Route path="scanner" element={<ScannerPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />

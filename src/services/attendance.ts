@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase'
 import type {
   Attendance,
   DashboardStats,
+  EventAttendance,
+  EventRecord,
   MarkAttendanceResult,
   QrSession,
   Student,
@@ -209,6 +211,163 @@ export async function fetchAttendance(params?: {
   const { data, error } = await query
   if (error) throw error
   return (data as Attendance[]) ?? []
+}
+
+export async function deleteAttendance(id: string): Promise<void> {
+  const { error } = await supabase.from('attendance').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function manualMarkAttendance(params: {
+  registration_number: string
+  attendance_date: string
+  status: 'Present' | 'Absent' | 'Late'
+}): Promise<void> {
+  const { data, error } = await supabase.rpc('manual_mark_attendance', {
+    p_registration_number: params.registration_number.trim(),
+    p_date: params.attendance_date,
+    p_status: params.status,
+  })
+
+  if (error) {
+    // Fallback: resolve student then upsert
+    const { data: student, error: sErr } = await supabase
+      .from('students')
+      .select('*')
+      .ilike('registration_number', params.registration_number.trim())
+      .limit(1)
+      .maybeSingle()
+    if (sErr) throw sErr
+    if (!student) throw new Error('Student Not Found')
+
+    const { error: upsertErr } = await supabase.from('attendance').upsert(
+      {
+        student_id: student.id,
+        registration_number: student.registration_number,
+        student_name: student.name,
+        programme: student.programme,
+        department: student.department,
+        attendance_date: params.attendance_date,
+        attendance_time: new Date().toTimeString().slice(0, 8),
+        status: params.status,
+      },
+      { onConflict: 'registration_number,attendance_date' }
+    )
+    if (upsertErr) throw upsertErr
+    return
+  }
+
+  const result = data as { success?: boolean; message?: string }
+  if (result && result.success === false) {
+    throw new Error(result.message || 'Failed to mark attendance')
+  }
+}
+
+export async function fetchEvents(): Promise<EventRecord[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('event_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data as EventRecord[]) ?? []
+}
+
+export async function createEvent(
+  event: Omit<EventRecord, 'id' | 'created_at' | 'created_by'>
+): Promise<EventRecord> {
+  const { data, error } = await supabase.from('events').insert(event).select().single()
+  if (error) throw error
+  return data as EventRecord
+}
+
+export async function updateEvent(
+  id: string,
+  updates: Partial<Omit<EventRecord, 'id' | 'created_at' | 'created_by'>>
+): Promise<EventRecord> {
+  const { data, error } = await supabase
+    .from('events')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as EventRecord
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  const { error } = await supabase.from('events').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function fetchEventAttendance(eventId: string): Promise<EventAttendance[]> {
+  const { data, error } = await supabase
+    .from('event_attendance')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('marked_at', { ascending: false })
+  if (error) throw error
+  return (data as EventAttendance[]) ?? []
+}
+
+export async function deleteEventAttendance(id: string): Promise<void> {
+  const { error } = await supabase.from('event_attendance').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function markEventAttendanceFromQr(
+  token: string,
+  eventId: string
+): Promise<MarkAttendanceResult> {
+  const { data, error } = await supabase.rpc('mark_event_attendance_from_qr', {
+    p_token: token,
+    p_event_id: eventId,
+  })
+  if (error) throw error
+  return data as MarkAttendanceResult
+}
+
+export async function manualMarkEventAttendance(params: {
+  event_id: string
+  registration_number: string
+  status?: 'Present' | 'Absent' | 'Late'
+}): Promise<void> {
+  const { data, error } = await supabase.rpc('manual_mark_event_attendance', {
+    p_event_id: params.event_id,
+    p_registration_number: params.registration_number.trim(),
+    p_status: params.status ?? 'Present',
+  })
+
+  if (error) {
+    const { data: student, error: sErr } = await supabase
+      .from('students')
+      .select('*')
+      .ilike('registration_number', params.registration_number.trim())
+      .limit(1)
+      .maybeSingle()
+    if (sErr) throw sErr
+    if (!student) throw new Error('Student Not Found')
+
+    const { error: upsertErr } = await supabase.from('event_attendance').upsert(
+      {
+        event_id: params.event_id,
+        student_id: student.id,
+        registration_number: student.registration_number,
+        student_name: student.name,
+        programme: student.programme,
+        department: student.department,
+        status: params.status ?? 'Present',
+      },
+      { onConflict: 'event_id,registration_number' }
+    )
+    if (upsertErr) throw upsertErr
+    return
+  }
+
+  const result = data as { success?: boolean; message?: string }
+  if (result && result.success === false) {
+    throw new Error(result.message || 'Failed to mark event attendance')
+  }
 }
 
 export async function fetchStudentAttendance(

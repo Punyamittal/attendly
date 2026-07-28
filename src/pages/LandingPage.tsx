@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -7,9 +8,9 @@ import {
   BarChart3,
   Users,
   Zap,
-  Mail,
-  MapPin,
-  Phone,
+  UserCheck,
+  Percent,
+  UserX,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -19,6 +20,8 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { contactSchema, type ContactInput } from '@/utils/validators'
+import { fetchDashboardStats } from '@/services/attendance'
+import type { DashboardStats } from '@/types'
 
 const features = [
   {
@@ -53,14 +56,8 @@ const features = [
   },
 ]
 
-const stats = [
-  { value: '99.9%', label: 'Uptime target', bg: 'bg-brand-400' },
-  { value: '<2s', label: 'Scan to mark', bg: 'bg-[var(--accent-3)]' },
-  { value: '60s', label: 'QR rotation', bg: 'bg-[var(--accent-2)] text-white' },
-  { value: '1/day', label: 'Duplicate block', bg: 'bg-ink-950 text-brand-400' },
-]
-
 export function LandingPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null)
   const {
     register,
     handleSubmit,
@@ -68,11 +65,29 @@ export function LandingPage() {
     formState: { errors, isSubmitting },
   } = useForm<ContactInput>({ resolver: zodResolver(contactSchema) })
 
-  function onContact(data: ContactInput) {
-    console.info('Contact form:', data)
-    toast.success('Message sent — we will get back to you soon.')
+  useEffect(() => {
+    void fetchDashboardStats()
+      .then(setStats)
+      .catch(() => setStats(null))
+  }, [])
+
+  function onContact(_data: ContactInput) {
+    toast.success('Thanks — your message was recorded locally.')
     reset()
   }
+
+  const present = stats?.presentToday ?? 0
+  const total = stats?.totalStudents ?? 0
+  const absent = stats?.absentToday ?? 0
+  const percent = stats?.attendancePercent ?? 0
+  const barWidth = total > 0 ? Math.min(100, percent) : 0
+
+  const liveStats = [
+    { value: String(total), label: 'Total students', bg: 'bg-brand-400', icon: Users },
+    { value: String(present), label: 'Present today', bg: 'bg-[var(--accent-3)]', icon: UserCheck },
+    { value: String(absent), label: 'Absent today', bg: 'bg-[var(--accent-2)] text-white', icon: UserX },
+    { value: `${percent}%`, label: 'Attendance today', bg: 'bg-ink-950 text-brand-400', icon: Percent },
+  ]
 
   return (
     <PublicLayout>
@@ -84,7 +99,7 @@ export function LandingPage() {
             transition={{ duration: 0.4 }}
             className="min-w-0"
           >
-            <span className="brutal-stamp mb-4 inline-block">Campus OS // v1</span>
+            <span className="brutal-stamp mb-4 inline-block">QR Attendance</span>
             <p className="font-display text-4xl leading-[0.9] sm:text-6xl lg:text-7xl">
               Attend
               <span className="mt-2 block w-fit bg-brand-400 px-2 text-ink-950 shadow-[4px_4px_0_#111110] sm:shadow-[6px_6px_0_#111110] dark:shadow-[4px_4px_0_#c6f500] dark:sm:shadow-[6px_6px_0_#c6f500]">
@@ -123,16 +138,21 @@ export function LandingPage() {
             <div className="relative border-[3px] border-ink-950 bg-[var(--surface)] p-4 shadow-[4px_4px_0_#111110] dark:border-ink-50 dark:shadow-[4px_4px_0_#c6f500] sm:p-7 sm:shadow-[8px_8px_0_#111110] dark:sm:shadow-[8px_8px_0_#c6f500]">
               <div className="mb-4 flex items-center justify-between gap-2 border-b-[3px] border-ink-950 pb-3 dark:border-ink-50">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest sm:text-xs">
-                  Live // Present
+                  Present today
                 </span>
-                <span className="brutal-tag">Realtime</span>
+                <span className="brutal-tag">Live</span>
               </div>
-              <p className="font-display text-4xl text-ink-950 dark:text-brand-400 sm:text-5xl">247</p>
+              <p className="font-display text-4xl text-ink-950 dark:text-brand-400 sm:text-5xl">
+                {present}
+              </p>
+              <p className="mt-1 font-mono text-[10px] uppercase text-[var(--muted)]">
+                of {total} students · {percent}%
+              </p>
               <div className="mt-4 h-4 border-[3px] border-ink-950 bg-ink-100 dark:border-ink-50 dark:bg-ink-800">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: '78%' }}
-                  transition={{ duration: 0.9, delay: 0.3 }}
+                  animate={{ width: `${barWidth}%` }}
+                  transition={{ duration: 0.9, delay: 0.2 }}
                   className="h-full bg-brand-400"
                 />
               </div>
@@ -140,12 +160,12 @@ export function LandingPage() {
                 <div className="border-[3px] border-ink-950 bg-[var(--accent-3)] p-3 text-ink-950 dark:border-ink-50">
                   <ScanLine className="h-5 w-5" strokeWidth={2.5} />
                   <p className="mt-2 font-display text-sm">Scanner</p>
-                  <p className="font-mono text-[10px] uppercase">Webcam auto</p>
+                  <p className="font-mono text-[10px] uppercase">Admin webcam</p>
                 </div>
                 <div className="border-[3px] border-ink-950 bg-brand-400 p-3 text-ink-950 dark:border-ink-50">
                   <Timer className="h-5 w-5" strokeWidth={2.5} />
-                  <p className="mt-2 font-display text-3xl leading-none">42</p>
-                  <p className="font-mono text-[10px] uppercase">QR expires</p>
+                  <p className="mt-2 font-display text-3xl leading-none">60</p>
+                  <p className="font-mono text-[10px] uppercase">QR TTL sec</p>
                 </div>
               </div>
             </div>
@@ -155,8 +175,9 @@ export function LandingPage() {
 
       <section className="mx-auto max-w-6xl safe-px pb-10 sm:px-6 sm:pb-14">
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4 md:gap-4">
-          {stats.map((s, i) => (
+          {liveStats.map((s, i) => (
             <GlassCard key={s.label} className={`!p-3 sm:!p-4 ${s.bg}`}>
+              <s.icon className="mb-2 h-4 w-4 opacity-80" strokeWidth={2.5} />
               <motion.p
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -176,13 +197,13 @@ export function LandingPage() {
 
       <section id="features" className="mx-auto max-w-6xl safe-px py-10 sm:px-6 sm:py-14">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="brutal-tag">Feature dump</span>
+          <span className="brutal-tag">Features</span>
           <h2 className="mt-4 font-display text-2xl sm:text-4xl">Built for campus scale</h2>
           <p className="mt-3 font-mono text-xs text-[var(--muted)] sm:text-sm">
-            Replace paper rolls with a loud, secure QR workflow.
+            Replace paper rolls with a secure QR workflow.
           </p>
         </div>
-        <div className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {features.map((f, i) => (
             <GlassCard
               key={f.title}
@@ -233,25 +254,12 @@ export function LandingPage() {
       </section>
 
       <section id="contact" className="mx-auto max-w-6xl safe-px py-10 pb-20 sm:px-6 sm:py-14 sm:pb-24">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="min-w-0">
-            <h2 className="font-display text-2xl sm:text-3xl">Contact</h2>
-            <p className="mt-3 font-mono text-xs text-[var(--muted)] sm:text-sm">
-              Deploying Attendly on your campus? Hit us up.
-            </p>
-            <div className="mt-8 space-y-4 font-mono text-xs sm:text-sm">
-              <p className="flex items-center gap-3 break-all">
-                <Mail className="h-4 w-4 shrink-0" strokeWidth={2.5} /> support@attendly.app
-              </p>
-              <p className="flex items-center gap-3">
-                <Phone className="h-4 w-4 shrink-0" strokeWidth={2.5} /> +91 98765 43210
-              </p>
-              <p className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 shrink-0" strokeWidth={2.5} /> Campus IT · India
-              </p>
-            </div>
-          </div>
-          <GlassCard className="!shadow-[4px_4px_0_#00e5ff] sm:!shadow-[6px_6px_0_#00e5ff]">
+        <div className="mx-auto max-w-xl">
+          <h2 className="font-display text-2xl sm:text-3xl">Contact</h2>
+          <p className="mt-3 font-mono text-xs text-[var(--muted)] sm:text-sm">
+            Send a message — no static contact details are published on this site.
+          </p>
+          <GlassCard className="mt-6 !shadow-[4px_4px_0_#00e5ff] sm:!shadow-[6px_6px_0_#00e5ff]">
             <form className="space-y-4" onSubmit={handleSubmit(onContact)}>
               <Input label="Name" {...register('name')} error={errors.name?.message} />
               <Input

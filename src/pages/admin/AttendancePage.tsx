@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, FileText, Search } from 'lucide-react'
+import { Download, FileText, Plus, Search, Trash2, X } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import toast from 'react-hot-toast'
-import { fetchAttendance } from '@/services/attendance'
+import {
+  deleteAttendance,
+  fetchAttendance,
+  manualMarkAttendance,
+} from '@/services/attendance'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { PageLoader } from '@/components/ui/Skeleton'
+import { manualAttendanceSchema, type ManualAttendanceInput } from '@/utils/validators'
 import {
   attendanceToCsvRow,
   downloadBlob,
@@ -28,6 +36,21 @@ export function AttendancePage() {
   const [status, setStatus] = useState('')
   const [sortKey, setSortKey] = useState<'time' | 'name' | 'reg'>('time')
   const [page, setPage] = useState(1)
+  const [manualOpen, setManualOpen] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ManualAttendanceInput>({
+    resolver: zodResolver(manualAttendanceSchema),
+    defaultValues: {
+      registration_number: '',
+      attendance_date: todayISO(),
+      status: 'Present',
+    },
+  })
 
   async function load() {
     const data = await fetchAttendance({
@@ -109,6 +132,33 @@ export function AttendancePage() {
     toast.success('PDF exported')
   }
 
+  async function onManual(values: ManualAttendanceInput) {
+    try {
+      await manualMarkAttendance(values)
+      toast.success('Attendance saved')
+      setManualOpen(false)
+      reset({
+        registration_number: '',
+        attendance_date: date || todayISO(),
+        status: 'Present',
+      })
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save')
+    }
+  }
+
+  async function onDelete(row: Attendance) {
+    if (!confirm(`Delete attendance for ${row.student_name} (${row.registration_number})?`)) return
+    try {
+      await deleteAttendance(row.id)
+      toast.success('Attendance deleted')
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Delete failed')
+    }
+  }
+
   if (loading) return <PageLoader />
 
   return (
@@ -121,11 +171,22 @@ export function AttendancePage() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Button onClick={() => {
+            reset({
+              registration_number: '',
+              attendance_date: date || todayISO(),
+              status: 'Present',
+            })
+            setManualOpen(true)
+          }}>
+            <Plus className="h-4 w-4" />
+            Manual Add
+          </Button>
           <Button variant="secondary" onClick={exportCsv}>
             <Download className="h-4 w-4" />
             CSV
           </Button>
-          <Button variant="secondary" onClick={exportPdf}>
+          <Button variant="secondary" onClick={exportPdf} className="col-span-2 sm:col-span-1">
             <FileText className="h-4 w-4" />
             PDF
           </Button>
@@ -199,7 +260,6 @@ export function AttendancePage() {
         </div>
       </GlassCard>
 
-      {/* Mobile cards */}
       <div className="space-y-2 md:hidden">
         {pageRows.length === 0 && (
           <GlassCard className="py-10 text-center font-mono text-xs text-[var(--muted)]">
@@ -215,7 +275,16 @@ export function AttendancePage() {
                 </p>
                 <p className="font-mono text-xs text-[var(--muted)]">{r.registration_number}</p>
               </div>
-              <span className="brutal-tag shrink-0">{r.status}</span>
+              <div className="flex shrink-0 items-center gap-1">
+                <span className="brutal-tag">{r.status}</span>
+                <button
+                  type="button"
+                  className="btn-ghost text-[var(--accent-2)]"
+                  onClick={() => void onDelete(r)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase text-[var(--muted)]">
               <span>{r.department || '—'}</span>
@@ -226,10 +295,9 @@ export function AttendancePage() {
         ))}
       </div>
 
-      {/* Desktop table */}
       <GlassCard className="hidden !p-0 md:block">
         <div className="table-scroll">
-          <table className="w-full min-w-[800px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="border-b border-[var(--glass-border)] text-[var(--muted)]">
               <tr>
                 <th className="px-4 py-3 font-medium">Registration Number</th>
@@ -239,6 +307,7 @@ export function AttendancePage() {
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Time</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -253,11 +322,20 @@ export function AttendancePage() {
                   <td className="px-4 py-3">
                     <span className="brutal-tag">{r.status}</span>
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      className="btn-ghost text-[var(--accent-2)]"
+                      onClick={() => void onDelete(r)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {pageRows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-[var(--muted)]">
+                  <td colSpan={8} className="px-4 py-12 text-center text-[var(--muted)]">
                     No attendance records
                   </td>
                 </tr>
@@ -290,6 +368,51 @@ export function AttendancePage() {
           </Button>
         </div>
       </div>
+
+      {manualOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
+          <div className="card-panel w-full max-w-md safe-pb">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-lg">Manual Attendance</h3>
+              <button type="button" className="btn-ghost" onClick={() => setManualOpen(false)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form className="space-y-4" onSubmit={handleSubmit(onManual)}>
+              <Input
+                label="Registration Number"
+                placeholder="e.g. 23BAI1559"
+                {...register('registration_number')}
+                error={errors.registration_number?.message}
+              />
+              <Input
+                label="Date"
+                type="date"
+                {...register('attendance_date')}
+                error={errors.attendance_date?.message}
+              />
+              <div>
+                <label className="label" htmlFor="status">
+                  Status
+                </label>
+                <select id="status" className="input-field" {...register('status')}>
+                  <option value="Present">Present</option>
+                  <option value="Late">Late</option>
+                  <option value="Absent">Absent</option>
+                </select>
+              </div>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="secondary" onClick={() => setManualOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" loading={isSubmitting}>
+                  Save
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
