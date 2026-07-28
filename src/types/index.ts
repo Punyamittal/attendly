@@ -1,0 +1,76 @@
+export interface Student {
+  id: string
+  registration_number: string
+  name: string
+  programme: string
+  department: string
+  batch: string
+  email: string | null
+  created_at: string
+}
+
+export interface Attendance {
+  id: string
+  student_id: string | null
+  registration_number: string
+  student_name: string
+  programme: string
+  department: string
+  attendance_date: string
+  attendance_time: string
+  status: 'Present' | 'Absent' | 'Late'
+  created_at: string
+}
+
+export interface Admin {
+  id: string
+  email: string
+  role: 'admin' | 'superadmin'
+  full_name: string | null
+  created_at: string
+}
+
+export interface QrSession {
+  id: string
+  token: string
+  registration_number: string
+  expires_at: string
+  timestamp: number
+}
+
+export interface QrPayload {
+  token: string
+  registrationNumber: string
+  timestamp: number
+}
+
+export interface MarkAttendanceResult {
+  success: boolean
+  code: 'MARKED' | 'ALREADY_MARKED' | 'NOT_FOUND' | 'EXPIRED' | 'INVALID_QR'
+  message: string
+  student?: {
+    name: string
+    registration_number: string
+    department?: string
+    programme?: string
+  }
+  attendance?: Attendance
+}
+
+export interface DashboardStats {
+  totalStudents: number
+  presentToday: number
+  absentToday: number
+  attendancePercent: number
+}
+
+export interface StudentCsvRow {
+  'Registration Number': string
+  Name: string
+  Programme: string
+  Department: string
+  Batch: string
+  Email: string
+}
+
+export type Theme = 'light' | 'dark'
