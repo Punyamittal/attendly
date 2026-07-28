@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
@@ -9,11 +9,12 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { PageLoader } from '@/components/ui/Skeleton'
 import { studentLoginSchema, type StudentLoginInput } from '@/utils/validators'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 export function StudentLoginPage() {
-  const { loginStudent } = useAuth()
+  const { loginStudent, student, loading } = useAuth()
   const navigate = useNavigate()
   const {
     register,
@@ -34,6 +35,9 @@ export function StudentLoginPage() {
       toast.error(err instanceof Error ? err.message : 'Invalid ID or Password')
     }
   }
+
+  if (loading) return <PageLoader />
+  if (student) return <Navigate to="/student" replace />
 
   return (
     <div className="page-bg flex min-h-screen flex-col">

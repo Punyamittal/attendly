@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
@@ -9,11 +9,12 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { PageLoader } from '@/components/ui/Skeleton'
 import { adminLoginSchema, type AdminLoginInput } from '@/utils/validators'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 export function AdminLoginPage() {
-  const { loginAdmin } = useAuth()
+  const { loginAdmin, isAdmin, loading } = useAuth()
   const navigate = useNavigate()
   const {
     register,
@@ -39,6 +40,9 @@ export function AdminLoginPage() {
       }
     }
   }
+
+  if (loading) return <PageLoader />
+  if (isAdmin) return <Navigate to="/admin" replace />
 
   return (
     <div className="page-bg flex min-h-screen flex-col">

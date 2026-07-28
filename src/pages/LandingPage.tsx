@@ -19,6 +19,7 @@ import { PublicLayout } from '@/layouts/PublicLayout'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useAuth } from '@/context/AuthContext'
 import { contactSchema, type ContactInput } from '@/utils/validators'
 import { fetchDashboardStats } from '@/services/attendance'
 import type { DashboardStats } from '@/types'
@@ -57,6 +58,7 @@ const features = [
 ]
 
 export function LandingPage() {
+  const { student, isAdmin } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const {
     register,
@@ -117,14 +119,28 @@ export function LandingPage() {
               &gt; No OCR. No paper. No duplicates.
             </p>
             <div className="mt-6 flex w-full flex-col gap-3 sm:mt-8 sm:w-auto sm:flex-row sm:flex-wrap">
-              <Link to="/student/login" className="w-full sm:w-auto">
-                <Button className="w-full px-6 py-3 sm:w-auto">Student Login</Button>
-              </Link>
-              <Link to="/admin/login" className="w-full sm:w-auto">
-                <Button variant="secondary" className="w-full px-6 py-3 sm:w-auto">
-                  Admin Dashboard
-                </Button>
-              </Link>
+              {student ? (
+                <Link to="/student" className="w-full sm:w-auto">
+                  <Button className="w-full px-6 py-3 sm:w-auto">Open Student Dashboard</Button>
+                </Link>
+              ) : (
+                <Link to="/student/login" className="w-full sm:w-auto">
+                  <Button className="w-full px-6 py-3 sm:w-auto">Student Login</Button>
+                </Link>
+              )}
+              {isAdmin ? (
+                <Link to="/admin" className="w-full sm:w-auto">
+                  <Button variant="secondary" className="w-full px-6 py-3 sm:w-auto">
+                    Open Admin Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/admin/login" className="w-full sm:w-auto">
+                  <Button variant="secondary" className="w-full px-6 py-3 sm:w-auto">
+                    Admin Dashboard
+                  </Button>
+                </Link>
+              )}
             </div>
           </motion.div>
 

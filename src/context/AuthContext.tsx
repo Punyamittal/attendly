@@ -12,7 +12,12 @@ import { supabase } from '@/lib/supabase'
 import { checkAdminRole, verifyStudentLogin } from '@/services/attendance'
 import type { Student } from '@/types'
 
-const STUDENT_KEY = 'attendly-student'
+const STUDENT_KEY = 'attendly-student-session'
+
+interface StoredStudentSession {
+  student: Student
+  savedAt: number
+}
 
 interface AuthContextValue {
   student: Student | null
@@ -30,11 +35,29 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 function loadStoredStudent(): Student | null {
   try {
-    const raw = localStorage.getItem(STUDENT_KEY)
-    return raw ? (JSON.parse(raw) as Student) : null
+    const raw =
+      localStorage.getItem(STUDENT_KEY) ?? localStorage.getItem('attendly-student')
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as StoredStudentSession | Student
+    // Support both old shape (Student) and new shape ({ student, savedAt })
+    if ('registration_number' in parsed && 'name' in parsed && !('student' in parsed)) {
+      return parsed as Student
+    }
+    return (parsed as StoredStudentSession).student ?? null
   } catch {
     return null
   }
+}
+
+function saveStudentSession(student: Student) {
+  const payload: StoredStudentSession = { student, savedAt: Date.now() }
+  localStorage.setItem(STUDENT_KEY, JSON.stringify(payload))
+}
+
+function clearStudentSession() {
+  localStorage.removeItem(STUDENT_KEY)
+  // Clear legacy key if present
+  localStorage.removeItem('attendly-student')
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -47,7 +70,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    async function init() {
+    async function restoreStudent() {
+      const stored = loadStoredStudent()
+      if (!stored) return
+
+      // Keep them logged in immediately from cache + migrate legacy storage key
+      saveStudentSession(stored)
+      if (mounted) setStudent(stored)
+
+      // Quietly refresh profile from DB so data stays current
+      try {
+        const fresh = await verifyStudentLogin(stored.registration_number, stored.name)
+        if (!mounted) return
+        if (fresh) {
+          saveStudentSession(fresh)
+          setStudent(fresh)
+        } else {
+          // Credentials no longer valid — clear session
+          clearStudentSession()
+          setStudent(null)
+        }
+      } catch {
+        // Keep cached student if network fails (offline-friendly)
+      }
+    }
+
+    async function restoreAdmin() {
       const { data } = await supabase.auth.getSession()
       if (!mounted) return
 
@@ -57,8 +105,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session?.user) {
         const ok = await checkAdminRole(data.session.user.id)
         if (mounted) setIsAdmin(ok)
+        if (!ok) {
+          // Session exists but not an admin — sign out quietly
+          await supabase.auth.signOut()
+          if (mounted) {
+            setIsAdmin(false)
+            setAdminUser(null)
+            setAdminSession(null)
+          }
+        }
       }
+    }
 
+    async function init() {
+      await Promise.all([restoreStudent(), restoreAdmin()])
       if (mounted) setLoading(false)
     }
 
@@ -84,14 +144,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginStudent = useCallback(async (registrationNumber: string, name: string) => {
     const found = await verifyStudentLogin(registrationNumber, name)
     if (!found) {
-      throw new Error('Invalid Registration Number or Name')
+      throw new Error('Invalid ID or Password')
     }
-    localStorage.setItem(STUDENT_KEY, JSON.stringify(found))
+    saveStudentSession(found)
     setStudent(found)
   }, [])
 
   const logoutStudent = useCallback(() => {
-    localStorage.removeItem(STUDENT_KEY)
+    clearStudentSession()
     setStudent(null)
   }, [])
 
