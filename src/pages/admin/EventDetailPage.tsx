@@ -11,6 +11,7 @@ import {
   fetchEvents,
   manualMarkEventAttendance,
 } from '@/services/attendance'
+import { EventQrDisplay } from '@/components/qr/EventQrDisplay'
 import { QrScanner } from '@/components/qr/QrScanner'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/Button'
@@ -24,6 +25,7 @@ const manualSchema = z.object({
 })
 
 type ManualInput = z.infer<typeof manualSchema>
+type PanelMode = 'display' | 'scan'
 
 export function EventDetailPage() {
   const { eventId } = useParams<{ eventId: string }>()
@@ -31,6 +33,7 @@ export function EventDetailPage() {
   const [rows, setRows] = useState<EventAttendance[]>([])
   const [loading, setLoading] = useState(true)
   const [manualOpen, setManualOpen] = useState(false)
+  const [mode, setMode] = useState<PanelMode>('display')
 
   const {
     register,
@@ -133,10 +136,36 @@ export function EventDetailPage() {
         </GlassCard>
       )}
 
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={mode === 'display' ? 'primary' : 'secondary'}
+          onClick={() => setMode('display')}
+          type="button"
+        >
+          Show Event QR
+        </Button>
+        <Button
+          variant={mode === 'scan' ? 'primary' : 'secondary'}
+          onClick={() => setMode('scan')}
+          type="button"
+        >
+          Scan Student QR
+        </Button>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
-          <h3 className="mb-3 font-display text-lg">Event Scanner</h3>
-          <QrScanner eventId={eventId} regionId={`event-scanner-${eventId}`} />
+          {mode === 'display' ? (
+            <>
+              <h3 className="mb-3 font-display text-lg">Display QR for students</h3>
+              <EventQrDisplay eventId={eventId} eventTitle={event.title} />
+            </>
+          ) : (
+            <>
+              <h3 className="mb-3 font-display text-lg">Scan student QR</h3>
+              <QrScanner eventId={eventId} regionId={`event-scanner-${eventId}`} />
+            </>
+          )}
         </div>
 
         <div>
@@ -154,7 +183,11 @@ export function EventDetailPage() {
                     <p className="truncate font-semibold">{r.student_name}</p>
                     <p className="font-mono text-xs text-[var(--muted)]">{r.registration_number}</p>
                     <p className="mt-1 font-mono text-[10px] uppercase text-[var(--muted)]">
-                      {formatTime(r.marked_at.includes('T') ? r.marked_at.split('T')[1]?.slice(0, 8) || '' : r.marked_at)}
+                      {formatTime(
+                        r.marked_at.includes('T')
+                          ? r.marked_at.split('T')[1]?.slice(0, 8) || ''
+                          : r.marked_at
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">

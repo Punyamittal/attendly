@@ -64,9 +64,25 @@ export interface QrSession {
   timestamp: number
 }
 
+export interface EventQrSession {
+  id: string
+  token: string
+  event_id: string
+  expires_at: string
+  timestamp: number
+}
+
 export interface QrPayload {
   token: string
   registrationNumber: string
+  timestamp: number
+}
+
+/** Payload embedded in admin-displayed event QR codes */
+export interface EventQrPayload {
+  type: 'event'
+  token: string
+  eventId: string
   timestamp: number
 }
 

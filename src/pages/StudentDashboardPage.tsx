@@ -1,31 +1,37 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarDays, History, QrCode, UserRound } from 'lucide-react'
+import { CalendarDays, History, QrCode, ScanLine, UserRound } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useAuth } from '@/context/AuthContext'
 import { StudentLayout } from '@/layouts/AdminLayout'
 import { DynamicQrGenerator } from '@/components/qr/DynamicQrGenerator'
+import { StudentEventQrScanner } from '@/components/qr/StudentEventQrScanner'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/Button'
 import { PageLoader } from '@/components/ui/Skeleton'
-import { fetchStudentAttendance } from '@/services/attendance'
+import { fetchActiveEvents, fetchStudentAttendance } from '@/services/attendance'
 import { calcAttendancePercent, formatDate, formatTime } from '@/utils/helpers'
-import type { Attendance } from '@/types'
+import type { Attendance, EventRecord } from '@/types'
 
-type Tab = 'qr' | 'history' | 'profile'
+type Tab = 'qr' | 'scan' | 'history' | 'profile'
 
 export function StudentDashboardPage() {
   const { student } = useAuth()
   const [tab, setTab] = useState<Tab>('qr')
   const [history, setHistory] = useState<Attendance[]>([])
+  const [activeEvents, setActiveEvents] = useState<EventRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!student) return
     void (async () => {
       try {
-        const rows = await fetchStudentAttendance(student.registration_number)
+        const [rows, events] = await Promise.all([
+          fetchStudentAttendance(student.registration_number),
+          fetchActiveEvents().catch(() => [] as EventRecord[]),
+        ])
         setHistory(rows)
+        setActiveEvents(events)
       } catch {
         setHistory([])
       } finally {
@@ -50,7 +56,7 @@ export function StudentDashboardPage() {
           Welcome, {student.name.split(' ')[0]}
         </h1>
         <p className="mt-1 font-mono text-xs text-[var(--muted)] sm:text-sm">
-          Generate your QR and track attendance history.
+          Generate your QR, scan event codes, and track attendance.
         </p>
       </div>
 
@@ -72,10 +78,11 @@ export function StudentDashboardPage() {
         ))}
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:mb-6 sm:flex sm:flex-wrap">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:flex sm:flex-wrap sm:grid-cols-none">
         {(
           [
-            { id: 'qr', label: 'QR', full: 'Generate QR', icon: QrCode },
+            { id: 'qr', label: 'My QR', full: 'My QR', icon: QrCode },
+            { id: 'scan', label: 'Scan', full: 'Scan Event', icon: ScanLine },
             { id: 'history', label: 'History', full: 'History', icon: History },
             { id: 'profile', label: 'Profile', full: 'Profile', icon: UserRound },
           ] as const
@@ -94,6 +101,41 @@ export function StudentDashboardPage() {
       </div>
 
       {tab === 'qr' && <DynamicQrGenerator registrationNumber={student.registration_number} />}
+
+      {tab === 'scan' && (
+        <div className="space-y-4">
+          <GlassCard>
+            <h2 className="font-display text-lg sm:text-xl">Scan Event QR</h2>
+            <p className="mt-1 font-mono text-[10px] text-[var(--muted)] sm:text-xs">
+              Point your camera at the QR shown by the admin. You will be marked present for that
+              event automatically.
+            </p>
+            {activeEvents.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="font-mono text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                  Active events
+                </p>
+                {activeEvents.slice(0, 5).map((ev) => (
+                  <div
+                    key={ev.id}
+                    className="flex items-center justify-between gap-2 border-[3px] border-ink-950 bg-[var(--surface)] p-2 dark:border-ink-50 sm:p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{ev.title}</p>
+                      <p className="font-mono text-[10px] text-[var(--muted)]">
+                        {formatDate(ev.event_date)}
+                        {ev.location ? ` · ${ev.location}` : ''}
+                      </p>
+                    </div>
+                    <span className="brutal-tag shrink-0">Live</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassCard>
+          <StudentEventQrScanner registrationNumber={student.registration_number} />
+        </div>
+      )}
 
       {tab === 'history' && (
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
@@ -125,7 +167,6 @@ export function StudentDashboardPage() {
           <GlassCard className="min-w-0 lg:col-span-2">
             <h2 className="font-display text-lg">Recent attendance</h2>
 
-            {/* Mobile cards */}
             <div className="mt-4 space-y-2 md:hidden">
               {history.length === 0 && (
                 <p className="py-6 text-center font-mono text-xs text-[var(--muted)]">
@@ -148,7 +189,6 @@ export function StudentDashboardPage() {
               ))}
             </div>
 
-            {/* Desktop table */}
             <div className="table-scroll mt-4 hidden md:block">
               <table className="w-full min-w-[420px] text-left text-sm">
                 <thead className="text-[var(--muted)]">

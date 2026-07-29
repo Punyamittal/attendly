@@ -3,6 +3,7 @@ import type {
   Attendance,
   DashboardStats,
   EventAttendance,
+  EventQrSession,
   EventRecord,
   MarkAttendanceResult,
   QrSession,
@@ -355,6 +356,84 @@ export async function markEventAttendanceFromQr(
   })
   if (error) throw error
   return data as MarkAttendanceResult
+}
+
+async function createEventQrSessionFallback(eventId: string): Promise<EventQrSession> {
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('id, is_active')
+    .eq('id', eventId)
+    .maybeSingle()
+
+  if (eventError) throw eventError
+  if (!event) throw new Error('Event not found')
+  if (!event.is_active) throw new Error('Event is not active')
+
+  const token = randomToken()
+  const expiresAt = new Date(Date.now() + 60_000).toISOString()
+
+  const { data: session, error: insertError } = await supabase
+    .from('event_qr_sessions')
+    .insert({
+      event_id: eventId,
+      token,
+      expires_at: expiresAt,
+    })
+    .select('id, token, event_id, expires_at')
+    .single()
+
+  if (insertError) throw insertError
+
+  return {
+    id: session.id,
+    token: session.token,
+    event_id: session.event_id,
+    expires_at: session.expires_at,
+    timestamp: Math.floor(Date.now() / 1000),
+  }
+}
+
+/** Admin: create a 60s rotating display QR for an event */
+export async function createEventQrSession(eventId: string): Promise<EventQrSession> {
+  const { data, error } = await supabase.rpc('create_event_qr_session', {
+    p_event_id: eventId,
+  })
+
+  if (!error) {
+    const result = data as { success: boolean; session?: EventQrSession; message?: string }
+    if (result?.success && result.session) return result.session
+    if (result && !result.success) {
+      throw new Error(result.message || 'Failed to create event QR')
+    }
+  }
+
+  return createEventQrSessionFallback(eventId)
+}
+
+/**
+ * Student scans admin event QR → mark themselves present.
+ * Identity comes from the logged-in student's registration number.
+ */
+export async function markAttendanceFromEventQr(
+  token: string,
+  registrationNumber: string
+): Promise<MarkAttendanceResult> {
+  const { data, error } = await supabase.rpc('mark_event_attendance_from_event_qr', {
+    p_token: token,
+    p_registration_number: registrationNumber.trim(),
+  })
+  if (error) throw error
+  return data as MarkAttendanceResult
+}
+
+export async function fetchActiveEvents(): Promise<EventRecord[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('is_active', true)
+    .order('event_date', { ascending: false })
+  if (error) throw error
+  return (data as EventRecord[]) ?? []
 }
 
 export async function manualMarkEventAttendance(params: {

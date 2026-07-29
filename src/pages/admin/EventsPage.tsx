@@ -160,7 +160,7 @@ export function EventsPage() {
               <Link to={`/admin/events/${event.id}`}>
                 <Button className="!px-3 !text-[10px]">
                   <ScanLine className="h-4 w-4" />
-                  Scan
+                  Open QR
                 </Button>
               </Link>
               <Button
