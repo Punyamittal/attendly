@@ -88,19 +88,19 @@ graph TB
     end
 
     subgraph Charts["Metrics & Dashboard Charts"]
+        dashboard_kpis["Dashboard KPI cards"]
+        ops_snapshot["Live ops snapshot"]
         risk_trajectory["Risk trajectory chart"]
         attack_stats["Attack detection stats"]
         eval_metrics["Evaluation metrics"]
         benchmark_p99["Benchmark p99 chart"]
-        dashboard_kpis["Dashboard KPI cards"]
-        ops_snapshot["Live ops snapshot"]
     end
 
     user --> api_client
     api_client --> Core
     user -->|Web UI| dashboard_kpis
-    Core --> risk_trajectory
-    risk_trajectory --> user
+    Core --> dashboard_kpis
+    dashboard_kpis --> user
 ```
 
 ### Data Flow & Charts Pipeline
@@ -118,12 +118,12 @@ flowchart LR
     end
 
     subgraph Metrics["Metrics & Chart Feeds"]
+        dashboard_kpis["Dashboard KPI cards"]
+        ops_snapshot["Live ops snapshot"]
         risk_trajectory["Risk trajectory chart"]
         attack_stats["Attack detection stats"]
         eval_metrics["Evaluation metrics"]
         benchmark_p99["Benchmark p99 chart"]
-        dashboard_kpis["Dashboard KPI cards"]
-        ops_snapshot["Live ops snapshot"]
         confusion_matrix["Model confusion matrix"]
         latency_hist["Latency histogram"]
     end
@@ -131,8 +131,8 @@ flowchart LR
     IN --> p0
     p2 --> OUT["Authorized Output"]
     OUT --> U
-    p2 --> risk_trajectory
-    risk_trajectory --> U
+    p2 --> dashboard_kpis
+    dashboard_kpis --> U
 ```
 
 ### Component & API Map
@@ -173,55 +173,11 @@ Dashboard — application page at `/admin`
 
 ![Dashboard](docs/readme-agent/pages/admin.png)
 
-#### Analytics
-
-Analytics — application page at `/admin/analytics`
-
-![Analytics](docs/readme-agent/pages/admin-analytics.png)
-
-#### Attendance
-
-Attendance — application page at `/admin/attendance`
-
-![Attendance](docs/readme-agent/pages/admin-attendance.png)
-
-#### Events
-
-Events — application page at `/admin/events`
-
-![Events](docs/readme-agent/pages/admin-events.png)
-
 #### Admin/Login
 
 Admin/Login — application page at `/admin/login`
 
 ![Admin/Login](docs/readme-agent/pages/admin-login.png)
-
-#### Reports
-
-Reports — application page at `/admin/reports`
-
-![Reports](docs/readme-agent/pages/admin-reports.png)
-
-#### Settings
-
-Settings — application page at `/admin/settings`
-
-![Settings](docs/readme-agent/pages/admin-settings.png)
-
-#### Students
-
-Students — application page at `/admin/students`
-
-![Students](docs/readme-agent/pages/admin-students.png)
-
-### Application
-
-#### Student
-
-Student — application page at `/student`
-
-![Student](docs/readme-agent/pages/student.png)
 
 ### Public
 
