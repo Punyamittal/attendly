@@ -1,51 +1,44 @@
 ![Project Banner](docs/readme-agent/banner.svg)
 
+# Attendance Management System with QR Code Integration
+
+A web application designed for managing student attendance, generating reports, and visualizing data using QR code scanning and a Supabase backend.
+
+## Overview
+
+This project is a comprehensive web application built using React and Vite, designed to streamline the process of taking and managing student attendance. The system utilizes QR code scanning for efficient check-in, integrates with Supabase for secure data storage and authentication, and provides detailed dashboards and PDF reporting capabilities. The architecture emphasizes a controlled data flow, ensuring that all input is processed and authorized before being used for reporting.
+
+## Problem
+
+The system aims to solve the challenge of manual, inefficient, and error-prone attendance tracking. By implementing a digital, QR-code-based system, it provides administrators with a centralized, real-time, and auditable record of student presence.
+
+## Solution
+
+The solution is a web portal that allows authorized administrators to initiate QR code sessions. Students use their devices to scan the generated QR code, which registers their attendance in the database. The system then processes this raw data to generate various reports, dashboards, and historical records, all secured by Supabase's Row Level Security (RLS) and custom stored procedures.
+
+## Key Features
+
+- QR Code Attendance Scanning: Uses `html5-qrcode` to scan student QR codes for attendance marking.
+- Admin Role Management: Defines specific roles and permissions for administrators.
+- Session Management: Allows the creation and tracking of specific attendance sessions (`qr_sessions`).
+- Data Visualization: Features interactive dashboards using `recharts` to display attendance statistics, risk trajectories, and performance metrics.
+- Reporting and Export: Ability to generate and download detailed attendance reports in PDF format using `jspdf` and `jspdf-autotable`.
+- Secure Backend Integration: Leverages Supabase for authentication, database storage, and complex business logic via Remote Procedure Calls (RPCs).
+
+## Technology Stack
+
+- React
+- Vite
+- Tailwind CSS
+- JavaScript
+- Supabase
+- react-hook-form
+- zod
+- recharts
+- html5-qrcode
+- qrcode
+
 ## Setup Guide
-
-### Backend Setup
-
-_From `README.md`:_
-
-
-### 1. Install
-
-```bash
-npm install
-```
-
-### 2. Configure environment
-
-Copy `.env.example` to `.env` and fill in your Supabase project values:
-
-```env
-VITE_SUPABASE_URL=https://xxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-### 3. Database
-
-In the Supabase SQL Editor, run the full script:
-
-[`supabase/schema.sql`](./supabase/schema.sql)
-
-This creates:
-
-- `students`, `attendance`, `admins`, `qr_sessions`
-- Unique `(registration_number, attendance_date)`
-- RLS policies
-- RPCs: `verify_student_login`, `create_qr_session`, `mark_attendance_from_qr`
-- Realtime publication for `attendance`
-
-### 4. Create an admin
-
-1. Create a user in **Supabase Auth** (email/password).
-2. Insert into `admins`:
-
-```sql
-INSERT INTO admins (id, email, role, full_name)
-VALUES ('<auth-user-uuid>', 'admin@college.edu', 'admin', 'System Admin');
-```
-
 
 ### Frontend Setup
 
@@ -159,3 +152,81 @@ mindmap
     Web UI
       dashboard
 ```
+
+## Application Pages
+
+Screenshots captured from the running application. Each page is listed with its function.
+
+### Application
+
+#### Home
+
+Home — application page at `/`
+
+![Home](docs/readme-agent/pages/dashboard.png)
+
+### Admin
+
+#### Dashboard
+
+Dashboard — application page at `/admin`
+
+![Dashboard](docs/readme-agent/pages/admin.png)
+
+#### Analytics
+
+Analytics — application page at `/admin/analytics`
+
+![Analytics](docs/readme-agent/pages/admin-analytics.png)
+
+#### Attendance
+
+Attendance — application page at `/admin/attendance`
+
+![Attendance](docs/readme-agent/pages/admin-attendance.png)
+
+#### Events
+
+Events — application page at `/admin/events`
+
+![Events](docs/readme-agent/pages/admin-events.png)
+
+#### Admin/Login
+
+Admin/Login — application page at `/admin/login`
+
+![Admin/Login](docs/readme-agent/pages/admin-login.png)
+
+#### Reports
+
+Reports — application page at `/admin/reports`
+
+![Reports](docs/readme-agent/pages/admin-reports.png)
+
+#### Settings
+
+Settings — application page at `/admin/settings`
+
+![Settings](docs/readme-agent/pages/admin-settings.png)
+
+#### Students
+
+Students — application page at `/admin/students`
+
+![Students](docs/readme-agent/pages/admin-students.png)
+
+### Application
+
+#### Student
+
+Student — application page at `/student`
+
+![Student](docs/readme-agent/pages/student.png)
+
+### Public
+
+#### Student/Login
+
+Student/Login — application page at `/student/login`
+
+![Student/Login](docs/readme-agent/pages/student-login.png)
